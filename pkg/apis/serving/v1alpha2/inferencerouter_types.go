@@ -20,6 +20,20 @@ import (
 	duckv1beta1 "knative.dev/pkg/apis/duck/v1beta1"
 )
 
+type InferenceRouterSpec { // this is a superclass, is that alright?
+	// List of endpoints to route traffic to (TODO)
+	Endpoints *metav1.ObjectMeta[] `json:"edges"` // what type to use here?
+}
+
+// InferenceRouterStatus defines the observed state of InferenceRouter
+type InferenceRouterStatus struct {
+	duckv1beta1.Status `json:",inline"`
+	// URL of the InferenceRouter
+	URL string `json:"url,omitempty"`
+	// Statuses for the default endpoints of the InferenceRouter
+	EndpointStatusMaps map[constants.InferenceServiceComponent]*StatusConfigurationSpec[] `json:"default,omitempty"`
+}
+
 // ABTestSpec defines parameters required for an A/B test.
 type ABTestSpec {
 	// Name of numeric metric we are A/B testing for improvement.
@@ -49,4 +63,35 @@ type ABTestSpec {
 	// TrafficPercent defines the percentage of users routed to the B group, if not 50%.
 	// +optional
 	TrafficPercent int `json:"trafficPercent,omitempty"`
+}
+
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// InferenceService is the Schema for the services API
+// +k8s:openapi-gen=true
+// +kubebuilder:printcolumn:name="URL",type="string",JSONPath=".status.url"
+// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
+// TODO other columns
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:resource:path=inferenceservices,shortName=inferenceservice
+type InferenceRouter struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   InferenceRouterSpec   `json:"spec,omitempty"`
+	Status InferenceRouterStatus `json:"status,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// InferenceRouterList contains a list of InferenceRouter
+type InferenceRouterList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []InferenceRouter `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&InferenceRouter{}, &InferenceRouterList{})
 }
