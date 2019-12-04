@@ -20,18 +20,16 @@ import (
 	duckv1beta1 "knative.dev/pkg/apis/duck/v1beta1"
 )
 
-type InferenceRouterSpec { // this is a superclass, is that alright?
-	// List of endpoints to route traffic to (TODO)
-	Endpoints *metav1.ObjectMeta[] `json:"edges"` // what type to use here?
+type InferenceRouterSpec {
+	// List of edges to route traffic to
+	Edges *v1.ObjectReference[] `json:"edges"`
+	// Routing configuration
+	ModelTesting ModelTestingSpec `json:"modelTesting"`
 }
 
-// InferenceRouterStatus defines the observed state of InferenceRouter
-type InferenceRouterStatus struct {
-	duckv1beta1.Status `json:",inline"`
-	// URL of the InferenceRouter
-	URL string `json:"url,omitempty"`
-	// Statuses for the default endpoints of the InferenceRouter
-	EndpointStatusMaps map[constants.InferenceServiceComponent]*StatusConfigurationSpec[] `json:"default,omitempty"`
+type ModelTestingSpec {
+	// A/B testing configuration
+	ABTest ABTestSpec `json:"ABTest,omitempty"`
 }
 
 // ABTestSpec defines parameters required for an A/B test.
@@ -65,6 +63,15 @@ type ABTestSpec {
 	TrafficPercent int `json:"trafficPercent,omitempty"`
 }
 
+// InferenceRouterStatus defines the observed state of InferenceRouter
+type InferenceRouterStatus struct {
+	duckv1beta1.Status `json:",inline"`
+	// URL of the InferenceRouter
+	URL string `json:"url,omitempty"`
+	// Statuses for the default endpoints of the InferenceRouter
+	EdgeStatusMap map[string]*StatusConfigurationSpec `json:"edgeStatus,omitempty"`
+}
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -72,7 +79,6 @@ type ABTestSpec {
 // +k8s:openapi-gen=true
 // +kubebuilder:printcolumn:name="URL",type="string",JSONPath=".status.url"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
-// TODO other columns
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:resource:path=inferenceservices,shortName=inferenceservice
 type InferenceRouter struct {
